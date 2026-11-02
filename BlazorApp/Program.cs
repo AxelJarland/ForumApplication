@@ -1,5 +1,7 @@
 using BlazorApp.Components;
 using BlazorApp.Services;
+using BlazorApp.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,8 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://
 builder.Services.AddScoped<IUserService, HttpUserService>();
 builder.Services.AddScoped<IPostService, HttpPostService>();
 builder.Services.AddScoped<ICommentService, HttpCommentService>();
+builder.Services.AddScoped<AuthenticationStateProvider, SimpleAuthProvider>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
