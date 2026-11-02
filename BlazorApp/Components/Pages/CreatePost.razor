@@ -1,0 +1,78 @@
+﻿@page "/posts/create"
+@attribute [Authorize]
+@inject IPostService PostService
+@inject NavigationManager NavMgr
+
+<PageTitle>Create post</PageTitle>
+
+<h3>Create new post</h3>
+
+<div>
+    <label>Title:</label>
+    <input type="text" @bind="title"/>
+</div>
+<div>
+    <label>Body:</label>
+    <br/>
+    <textarea @bind="body" rows="6" cols="50"></textarea>
+</div>
+
+<button @onclick="CreatePostAsync">Create post</button>
+
+@if (!string.IsNullOrEmpty(errorLabel))
+{
+    <p style="color: red">@errorLabel</p>
+}
+
+@code {
+    [CascadingParameter] public Task<AuthenticationState>? State { get; set; }
+
+    private string title = "";
+    private string body = "";
+    private string errorLabel = "";
+    private int userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (State is null)
+        {
+            return;
+        }
+
+        AuthenticationState authState = await State;
+        ClaimsPrincipal user = authState.User;
+
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        }
+    }
+
+    private async Task CreatePostAsync()
+    {
+        errorLabel = "";
+
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(body))
+        {
+            errorLabel = "Title and body are required.";
+            return;
+        }
+
+        try
+        {
+            PostDTO created = await PostService.AddPostAsync(new CreatePostDTO
+            {
+                Title = title,
+                Body = body,
+                UserId = userId
+            });
+
+            NavMgr.NavigateTo($"/posts/{created.Id}");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            errorLabel = $"Error: {e.Message}";
+        }
+    }
+}

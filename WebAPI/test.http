@@ -46,3 +46,21 @@ POST http://localhost:5018/comments
 Content-Type: application/json
 
 { "body": "Hi", "userId": 1, "postId": 99 }
+
+### Login correct
+POST http://localhost:5018/auth/login
+Content-Type: application/json
+
+{ "username": "alice", "password": "1234" }
+
+### Login wrong password
+POST http://localhost:5018/auth/login
+Content-Type: application/json
+
+{ "username": "alice", "password": "wrong" }
+
+### Login unknown user
+POST http://localhost:5018/auth/login
+Content-Type: application/json
+
+{ "username": "nobody", "password": "1234" }

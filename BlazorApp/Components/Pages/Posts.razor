@@ -1,0 +1,58 @@
+﻿@page "/posts"
+@inject IPostService PostService
+@inject IUserService UserService
+
+<PageTitle>Posts</PageTitle>
+
+<h3>Posts</h3>
+
+@if (!string.IsNullOrEmpty(errorLabel))
+{
+    <p style="color: red">@errorLabel</p>
+}
+else if (posts is null)
+{
+    <p>Loading...</p>
+}
+else if (!posts.Any())
+{
+    <p>No posts yet.</p>
+}
+else
+{
+    <ul>
+        @foreach (PostDTO post in posts)
+        {
+            <li>
+                <a href="/posts/@post.Id">@post.Title</a>
+                by @GetAuthorName(post.UserId)
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<PostDTO>? posts;
+    private Dictionary<int, string> usernames = new();
+    private string errorLabel = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            posts = await PostService.GetPostsAsync();
+            List<UserDTO> users = await UserService.GetUsersAsync();
+            usernames = users.ToDictionary(u => u.Id, u => u.Username);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            errorLabel = $"Error: {e.Message}";
+        }
+    }
+
+    private string GetAuthorName(int userId)
+    {
+        return usernames.TryGetValue(userId, out string? name) ? name : "unknown user";
+    }
+}

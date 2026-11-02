@@ -1,0 +1,128 @@
+﻿@page "/posts/{Id:int}"
+@inject IPostService PostService
+@inject IUserService UserService
+@inject ICommentService CommentService
+
+<PageTitle>Post</PageTitle>
+
+@if (!string.IsNullOrEmpty(errorLabel))
+{
+    <p style="color: red">@errorLabel</p>
+}
+else if (post is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <h3>@post.Title</h3>
+    <p>by @GetAuthorName(post.UserId)</p>
+    <p>@post.Body</p>
+
+    <h4>Comments</h4>
+    @if (comments is null || !comments.Any())
+    {
+        <p>No comments yet.</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (CommentDTO comment in comments)
+            {
+                <li><strong>@GetAuthorName(comment.UserId)</strong>: @comment.Body</li>
+            }
+        </ul>
+    }
+
+    @if (userId != 0)
+    {
+        <h4>Add a comment</h4>
+        <textarea @bind="newComment" rows="3" cols="50"></textarea>
+        <br/>
+        <button @onclick="AddCommentAsync">Add comment</button>
+
+        @if (!string.IsNullOrEmpty(commentError))
+        {
+            <p style="color: red">@commentError</p>
+        }
+    }
+    else
+    {
+        <p><a href="/login">Log in</a> to add a comment.</p>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [CascadingParameter] public Task<AuthenticationState>? State { get; set; }
+
+    private PostDTO? post;
+    private List<CommentDTO>? comments;
+    private Dictionary<int, string> usernames = new();
+    private string newComment = "";
+    private string errorLabel = "";
+    private string commentError = "";
+    private int userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            post = await PostService.GetPostAsync(Id);
+            comments = await CommentService.GetCommentsAsync(Id);
+            List<UserDTO> users = await UserService.GetUsersAsync();
+            usernames = users.ToDictionary(u => u.Id, u => u.Username);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            errorLabel = $"Error: {e.Message}";
+            return;
+        }
+
+        if (State is not null)
+        {
+            AuthenticationState authState = await State;
+            ClaimsPrincipal user = authState.User;
+
+            if (user.Identity is { IsAuthenticated: true })
+            {
+                userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            }
+        }
+    }
+
+    private async Task AddCommentAsync()
+    {
+        commentError = "";
+
+        if (string.IsNullOrWhiteSpace(newComment))
+        {
+            commentError = "Write a comment first.";
+            return;
+        }
+
+        try
+        {
+            await CommentService.AddCommentAsync(new CreateCommentDTO
+            {
+                Body = newComment,
+                UserId = userId,
+                PostId = Id
+            });
+
+            newComment = "";
+            comments = await CommentService.GetCommentsAsync(Id);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            commentError = $"Error: {e.Message}";
+        }
+    }
+
+    private string GetAuthorName(int authorId)
+    {
+        return usernames.TryGetValue(authorId, out string? name) ? name : "unknown user";
+    }
+}
