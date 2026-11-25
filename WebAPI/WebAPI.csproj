@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\APIContracts\APIContracts.csproj" />
+      <ProjectReference Include="..\EfcRepositories\EfcRepositories.csproj" />
       <ProjectReference Include="..\FileRepositories\FileRepositories.csproj" />
     </ItemGroup>
 
