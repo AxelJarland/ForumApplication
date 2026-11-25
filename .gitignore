@@ -7,3 +7,6 @@ riderModule.iml
 WebAPI/users.json
 WebAPI/posts.json
 WebAPI/comments.json
+EfcRepositories/app.db
+EfcRepositories/app.db-shm
+EfcRepositories/app.db-wal

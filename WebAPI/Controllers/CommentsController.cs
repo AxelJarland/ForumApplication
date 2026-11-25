@@ -1,6 +1,7 @@
 ﻿using APIContracts.Comments;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -25,8 +26,8 @@ public class CommentsController : ControllerBase
     {
         try
         {
-            VerifyUserExists(request.UserId);
-            VerifyPostExists(request.PostId);
+            await VerifyUserExistsAsync(request.UserId);
+            await VerifyPostExistsAsync(request.PostId);
 
             Comment comment = new Comment { Body = request.Body, UserId = request.UserId, PostId = request.PostId };
             Comment created = await commentRepo.AddAsync(comment);
@@ -92,7 +93,7 @@ public class CommentsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<CommentDTO>> GetComments(
+    public async Task<ActionResult<IEnumerable<CommentDTO>>> GetComments(
         [FromQuery] int? userId,
         [FromQuery] string? username,
         [FromQuery] int? postId)
@@ -108,10 +109,10 @@ public class CommentsController : ControllerBase
 
             if (!string.IsNullOrWhiteSpace(username))
             {
-                List<int> matchingUserIds = userRepo.GetManyAsync()
+                List<int> matchingUserIds = await userRepo.GetManyAsync()
                     .Where(u => u.Username.ToLower() == username.ToLower())
                     .Select(u => u.Id)
-                    .ToList();
+                    .ToListAsync();
 
                 comments = comments.Where(c => matchingUserIds.Contains(c.UserId));
             }
@@ -121,9 +122,9 @@ public class CommentsController : ControllerBase
                 comments = comments.Where(c => c.PostId == postId.Value);
             }
 
-            List<CommentDTO> dtos = comments
+            List<CommentDTO> dtos = await comments
                 .Select(c => new CommentDTO { Id = c.Id, Body = c.Body, UserId = c.UserId, PostId = c.PostId })
-                .ToList();
+                .ToListAsync();
 
             return Ok(dtos);
         }
@@ -153,9 +154,9 @@ public class CommentsController : ControllerBase
         }
     }
 
-    private void VerifyUserExists(int userId)
+    private async Task VerifyUserExistsAsync(int userId)
     {
-        bool exists = userRepo.GetManyAsync().Any(u => u.Id == userId);
+        bool exists = await userRepo.GetManyAsync().AnyAsync(u => u.Id == userId);
 
         if (!exists)
         {
@@ -163,9 +164,9 @@ public class CommentsController : ControllerBase
         }
     }
 
-    private void VerifyPostExists(int postId)
+    private async Task VerifyPostExistsAsync(int postId)
     {
-        bool exists = postRepo.GetManyAsync().Any(p => p.Id == postId);
+        bool exists = await postRepo.GetManyAsync().AnyAsync(p => p.Id == postId);
 
         if (!exists)
         {

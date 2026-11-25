@@ -1,6 +1,7 @@
 ﻿using APIContracts.Posts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -23,7 +24,7 @@ public class PostsController : ControllerBase
     {
         try
         {
-            VerifyUserExists(request.UserId);
+            await VerifyUserExistsAsync(request.UserId);
 
             Post post = new Post { Title = request.Title, Body = request.Body, UserId = request.UserId };
             Post created = await postRepo.AddAsync(post);
@@ -89,7 +90,7 @@ public class PostsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<PostDTO>> GetPosts(
+    public async Task<ActionResult<IEnumerable<PostDTO>>> GetPosts(
         [FromQuery] string? titleContains,
         [FromQuery] int? userId,
         [FromQuery] string? username)
@@ -110,17 +111,17 @@ public class PostsController : ControllerBase
 
             if (!string.IsNullOrWhiteSpace(username))
             {
-                List<int> matchingUserIds = userRepo.GetManyAsync()
+                List<int> matchingUserIds = await userRepo.GetManyAsync()
                     .Where(u => u.Username.ToLower() == username.ToLower())
                     .Select(u => u.Id)
-                    .ToList();
+                    .ToListAsync();
 
                 posts = posts.Where(p => matchingUserIds.Contains(p.UserId));
             }
 
-            List<PostDTO> DTOs = posts
+            List<PostDTO> DTOs = await posts
                 .Select(p => new PostDTO { Id = p.Id, Title = p.Title, Body = p.Body, UserId = p.UserId })
-                .ToList();
+                .ToListAsync();
 
             return Ok(DTOs);
         }
@@ -150,9 +151,9 @@ public class PostsController : ControllerBase
         }
     }
 
-    private void VerifyUserExists(int userId)
+    private async Task VerifyUserExistsAsync(int userId)
     {
-        bool exists = userRepo.GetManyAsync().Any(u => u.Id == userId);
+        bool exists = await userRepo.GetManyAsync().AnyAsync(u => u.Id == userId);
 
         if (!exists)
         {

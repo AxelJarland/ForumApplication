@@ -1,6 +1,7 @@
 ﻿using APIContracts.Users;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -21,7 +22,7 @@ public class UsersController : ControllerBase
     {
         try
         {
-            VerifyUserNameIsAvailable(request.Username);
+            await VerifyUserNameIsAvailableAsync(request.Username);
 
             User user = new User { Username = request.Username, Password = request.Password };
             User created = await userRepo.AddAsync(user);
@@ -48,7 +49,7 @@ public class UsersController : ControllerBase
     {
         try
         {
-            VerifyUserNameIsAvailable(request.Username, id);
+            await VerifyUserNameIsAvailableAsync(request.Username, id);
 
             User user = new User { Id = id, Username = request.Username, Password = request.Password };
             await userRepo.UpdateAsync(user);
@@ -89,7 +90,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<UserDTO>> GetUsers([FromQuery] string? usernameContains)
+    public async Task<ActionResult<IEnumerable<UserDTO>>> GetUsers([FromQuery] string? usernameContains)
     {
         try
         {
@@ -100,9 +101,9 @@ public class UsersController : ControllerBase
                 users = users.Where(u => u.Username.ToLower().Contains(usernameContains.ToLower()));
             }
 
-            List<UserDTO> dtos = users
+            List<UserDTO> dtos = await users
                 .Select(u => new UserDTO { Id = u.Id, Username = u.Username })
-                .ToList();
+                .ToListAsync();
 
             return Ok(dtos);
         }
@@ -132,14 +133,14 @@ public class UsersController : ControllerBase
         }
     }
 
-    private void VerifyUserNameIsAvailable(string username, int? ignoreId = null)
+    private async Task VerifyUserNameIsAvailableAsync(string username, int? ignoreId = null)
     {
-        bool taken = userRepo.GetManyAsync()
-            .Any(u => u.Id != ignoreId && u.Username.ToLower() == username.ToLower());
+        bool taken = await userRepo.GetManyAsync()
+            .AnyAsync(u => u.Id != ignoreId && u.Username.ToLower() == username.ToLower());
 
         if (taken)
         {
             throw new ArgumentException($"Username '{username}' is already taken.");
         }
     }
-}
+}   
